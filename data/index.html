@@ -1,0 +1,218 @@
+<!DOCTYPE HTML>
+<html>
+  <!--  Web Tachometer -- Yuri - Aug 2021
+        Web served RPM from an ESP32
+        
+        Based on code by Rui Santos -  https://RandomNerdTutorials.com
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files.
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software. -->
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP32 Tachometer</title>
+    <meta name="description" content="Web Tachometer">
+    <meta name="author" content="Yuri">
+    <link rel="icon" href="favicon.svg" />
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/all/gauge.min.js"></script>
+    <style>
+      body {
+        min-width: 250px;
+        max-width: 1000px;
+        margin: 0 auto;
+        background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), 
+          url('https://wallpapercave.com/wp/wp2760334.jpg');
+        background-position: center top;
+      }
+      canvas {
+        display: inline-block;
+        text-align: center;
+        padding: 30px 10px 0px 10px;
+      }
+      .gauge-banner {
+        width: 80%;
+        margin: 0 auto;
+        padding-bottom: 10px;
+      }
+      #status-container {
+        display: inline-block;
+        vertical-align: top;
+        font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+        font-size: 13px;
+        color: #eee;
+        margin: 0px 10px 0px 10px;
+      }
+      .status-text {
+        color: #999;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="gauge-banner">
+      <div id="status-container">
+        <br>ESP32 Tachometer
+        <div class="status-text">
+            <span id="status-text">Initializing...</span></br>
+            <form id="num_poles">
+              <label for="num_poles1">Sensor 1 # poles: </label>
+              <input type="number" name="num_poles1" id="num_poles1" min="1" max="8" step="1" value=""
+              style="width: 2em;border-radius: 5px;" onchange="setNumPoles()">
+              </br>
+              <label for="num_poles2">Sensor 2 # poles: </label>
+              <input type="number" name="num_poles2" id="num_poles2" min="1" max="8" step="1" value=""
+              style="width: 2em;border-radius: 5px;" onchange="setNumPoles()">
+            </form>
+            <span id="debug-text"></span>
+        </div>
+      </div>
+      <canvas id="rpm1-gauge"></canvas>
+      <canvas id="rpm2-gauge"></canvas>
+    </div>
+  </body>
+  <script>
+    
+    const DEBUG_MODE   = false;  // set true, "local", or false as desired
+                                 //   "local" will use "http://webtach.local" for all server requests instead of "/"
+    const REFRESH_RATE = 2500;   // 5 seconds
+    const SPINNER = ['-', '\\', '|', '/']
+    
+    var spin_count = 0;
+    var gauge1;
+    var gauge2;
+    
+    function renderElements() {
+      
+        gauge1 = new RadialGauge({
+            renderTo: 'rpm1-gauge',
+            width: 250,
+            height: 250,
+            units: 'Sensor 1',
+            title: 'RPM',
+            minValue: 0,
+            maxValue: 1000,
+            majorTicks: [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+            minorTicks: 2,
+            strokeTicks: true,
+            highlights: [],
+            ticksAngle: 225,
+            startAngle: 67.5,
+            colorMajorTicks: "#ddd",
+            colorMinorTicks: "#ddd",
+            colorTitle: "#eee",
+            colorUnits: "#ccc",
+            colorNumbers: "#eee",
+            colorPlate: "rgb(18, 24, 18)",
+            borderShadowWidth: 0,
+            borders: true,
+            needleType: "arrow",
+            needleWidth: 3,
+            needleCircleSize: 7,
+            needleCircleOuter: true,
+            needleCircleInner: false,
+            animationDuration: 1500,
+            animationRule: "linear",
+            colorBorderOuter: "#333",
+            colorBorderOuterEnd: "#111",
+            colorBorderMiddle: "#222",
+            colorBorderMiddleEnd: "#111",
+            colorBorderInner: "#111",
+            colorBorderInnerEnd: "#333",
+            colorNeedle: "#c00",
+            colorNeedleShadowDown: "#333",
+            colorNeedleCircleOuter: "#333",
+            colorNeedleCircleOuterEnd: "#111",
+            colorNeedleCircleInner: "#111",
+            colorNeedleCircleInnerEnd: "#222",
+            fontValueSize: 33,
+            valueInt: 1,
+            valueDec: 1,
+            valueBoxBorderRadius: 2,
+            colorValueBoxRect: "#222",
+            colorValueBoxRectEnd: "#333"
+        }).draw();
+        
+        gauge2 = new RadialGauge({
+            renderTo: 'rpm2-gauge',
+            width: 250,
+            height: 250,
+            units: 'Sensor 2',
+            title: 'RPM',
+            minValue: 0,
+            maxValue: 1000,
+            majorTicks: [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+            minorTicks: 2,
+            strokeTicks: true,
+            highlights: [],
+            ticksAngle: 225,
+            startAngle: 67.5,
+            colorMajorTicks: "#ddd",
+            colorMinorTicks: "#ddd",
+            colorTitle: "#eee",
+            colorUnits: "#ccc",
+            colorNumbers: "#eee",
+            colorPlate: "rgb(18, 24, 18)",
+            borderShadowWidth: 0,
+            borders: true,
+            needleType: "arrow",
+            needleWidth: 3,
+            needleCircleSize: 7,
+            needleCircleOuter: true,
+            needleCircleInner: false,
+            animationDuration: 1500,
+            animationRule: "linear",
+            colorBorderOuter: "#333",
+            colorBorderOuterEnd: "#111",
+            colorBorderMiddle: "#222",
+            colorBorderMiddleEnd: "#111",
+            colorBorderInner: "#111",
+            colorBorderInnerEnd: "#333",
+            colorNeedle: "#c00",
+            colorNeedleShadowDown: "#333",
+            colorNeedleCircleOuter: "#333",
+            colorNeedleCircleOuterEnd: "#111",
+            colorNeedleCircleInner: "#111",
+            colorNeedleCircleInnerEnd: "#222",
+            fontValueSize: 33,
+            valueInt: 1,
+            valueDec: 1,
+            valueBoxBorderRadius: 2,
+            colorValueBoxRect: "#222",
+            colorValueBoxRectEnd: "#333"
+        }).draw();
+     }
+
+    var urlBase = (DEBUG_MODE == "local") ? 'http://webtach.local/' : '/';
+    
+    initForm();
+    renderElements();
+    refreshGauges();
+    setInterval(refreshGauges, REFRESH_RATE);
+
+    async function initForm() {
+        const response = await fetch(urlBase + 'num_poles');
+        const vals = await response.text();
+        document.getElementById('num_poles1').value = vals.split(',')[0];
+        document.getElementById('num_poles2').value = vals.split(',')[1];
+    }
+
+    async function refreshGauges() {
+        const response = await fetch(urlBase + 'rpm');
+        const vals = await response.text();
+        gauge1.value = vals.split(',')[0];
+        gauge2.value = vals.split(',')[1];
+        document.getElementById('status-text').innerHTML = SPINNER[spin_count];
+        spin_count = (spin_count + 1) % 4;
+    }
+    
+    async function setNumPoles() {
+        const form = new FormData(document.getElementById('num_poles'));
+        fetch(urlBase + 'num_poles', {
+          method: 'post',
+          body: form
+        });    
+    }
+
+  </script>
+</html>
