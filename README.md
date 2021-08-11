@@ -3,7 +3,7 @@ ESP32 based web monitoring of RPM via hall effect sensors
 
 ### Bill of Materials
 * [ESP32 Development Board](https://www.adafruit.com/product/3269)
-* [A3144 Hall Effet Sensors (2)] (https://www.amazon.com/Gikfun-AH3144E-Magnetic-Detector-Arduino/dp/B07QS6PN3B)
+* [A3144 Hall Effet Sensors \(2\)] (https://www.amazon.com/Gikfun-AH3144E-Magnetic-Detector-Arduino/dp/B07QS6PN3B)
 * [SSD1306 128x64 OLED Display](https://www.amazon.com/gp/product/B072Q2X2LL)
 
 ### Wiring/Construction
